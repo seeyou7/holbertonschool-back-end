@@ -1,30 +1,34 @@
 #!/usr/bin/python3
-'''
-Python script that exports data in the JSON format
-'''
+"""Uses a REST API for a given employee ID, returns
+information about TODO list progress and exports in jSON"""
+
 import json
 import requests
 import sys
 
 if __name__ == "__main__":
-    get_emp_id = sys.argv[1]
-    user_url = (f'https://jsonplaceholder.typicode.com/users/{get_emp_id}')
-    get_emp_data = requests.get(user_url).json()
-    todos_url = (
-        f'https://jsonplaceholder.typicode.com/todos?userId={get_emp_id}'
-    )
-    get_emp_tasks = requests.get(todos_url).json()
+    if len(sys.argv) != 2:
+        print("Usage: python script_name.py <employee_id>")
+        sys.exit(1)
 
-    tasks_list = []
-    for task in get_emp_tasks:
-        task_dict = {}
-        task_dict["task"] = task.get("title")
-        task_dict["completed"] = task.get("completed")
-        task_dict["username"] = get_emp_data.get("username")
-        tasks_list.append(task_dict)
+    URL = "https://jsonplaceholder.typicode.com"
+    EMPLOYEE_ID = sys.argv[1]
 
-    tasks_json = {}
-    tasks_json[get_emp_id] = tasks_list
+    EMPLOYEE_TODOS = requests.get(f"{URL}/users/{EMPLOYEE_ID}/todos",
+                                  params={"_expand": "user"})
+    data = EMPLOYEE_TODOS.json()
 
-    with open("{}.json".format(get_emp_id), 'w') as jsonfile:
-        json.dump(tasks_json, jsonfile)
+    if not data:
+        print(f"No data found for employee ID {EMPLOYEE_ID}")
+        sys.exit(1)
+
+    username = data[0]["user"]["username"]
+    USER_TASK = {EMPLOYEE_ID: []}
+    for task in data:
+        dic_task = {"task": task["title"], "completed": task["completed"],
+                    "username": username}
+        USER_TASK[EMPLOYEE_ID].append(dic_task)
+
+    fileName = f"{EMPLOYEE_ID}.json"
+    with open(fileName, "w") as file:
+        json.dump(USER_TASK, file)
